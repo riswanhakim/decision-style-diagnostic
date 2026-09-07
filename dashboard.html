@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mindshift — Cohort & Individual Dashboard</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', sans-serif; background-color: #f8fafc; color: #0f172a; }
+    .tab-active { border-bottom: 3px solid #3b82f6; color: #1d4ed8; font-weight: 700; }
+  </style>
+</head>
+<body class="min-h-screen bg-slate-50">
+
+  <!-- TOPBAR -->
+  <header class="bg-slate-900 text-white border-b border-slate-800 sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center font-black text-white text-lg shadow-lg">
+          M
+        </div>
+        <div>
+          <h1 class="text-base font-bold leading-tight">Mindshift Insights</h1>
+          <p class="text-xs text-slate-400">Cohort & Individual Mindset Diagnostic Dashboard</p>
+        </div>
+      </div>
+      <div class="flex items-center space-x-3">
+        <button onclick="exportCSV()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-xs font-semibold rounded-lg border border-slate-700 text-slate-200 transition flex items-center space-x-1">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+          <span>Export CSV</span>
+        </button>
+        <button onclick="fetchData()" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-xs font-semibold rounded-lg text-white transition flex items-center space-x-1">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+          <span>Refresh Data</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN CONTAINER -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+    <!-- FILTER BAR -->
+    <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 mb-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div>
+        <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Filter Company (Cohort)</label>
+        <select id="filterCompany" onchange="applyFilters()" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm font-medium text-slate-700 outline-none focus:ring-2 focus:ring-blue-500">
+          <option value="ALL">Semua Perusahaan</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Filter Job Level</label>
+        <select id="filterRole" onchange="applyFilters()" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm font-medium text-slate-700 outline-none focus:ring-2 focus:ring-blue-500">
+          <option value="ALL">Semua Job Level</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Filter Tahap Asesmen</label>
+        <select id="filterStage" onchange="applyFilters()" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm font-medium text-slate-700 outline-none focus:ring-2 focus:ring-blue-500">
+          <option value="ALL">Semua Tahap (Pre & Post)</option>
+          <option value="Pre-Test">Pre-Test Only</option>
+          <option value="Post-Test">Post-Test Only</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- NAVIGATION TABS -->
+    <div class="flex border-b border-slate-200 mb-6 space-x-8">
+      <button id="tabBtnCohort" onclick="switchTab('cohort')" class="pb-3 text-sm font-semibold text-slate-500 hover:text-slate-800 transition tab-active">
+        📊 Cohort & Organizational Insight
+      </button>
+      <button id="tabBtnIndividual" onclick="switchTab('individual')" class="pb-3 text-sm font-semibold text-slate-500 hover:text-slate-800 transition">
+        👤 Individual Data View (<span id="countIndividual">0</span>)
+      </button>
+    </div>
+
+    <!-- TAB 1: COHORT INSIGHT -->
+    <div id="tabCohort" class="space-y-6">
+
+      <!-- EXECUTIVE CARDS -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+          <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Responden</span>
+          <div id="cardTotal" class="text-3xl font-black text-slate-900 mt-1">0</div>
+          <span class="text-xs text-slate-500 mt-1 block">Peserta terdaftar</span>
+        </div>
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+          <span class="text-xs font-bold text-blue-600 uppercase tracking-wider">Skor Rata-Rata Cohort</span>
+          <div id="cardAvgScore" class="text-3xl font-black text-blue-700 mt-1">0.00 <span class="text-sm font-normal text-slate-400">/ 5.00</span></div>
+          <span id="cardAvgLevel" class="text-xs font-semibold text-blue-600 mt-1 block">—</span>
+        </div>
+        <div class="bg-white p-5 rounded-2xl border border-emerald-200 bg-emerald-50/30 shadow-sm">
+          <span class="text-xs font-bold text-emerald-600 uppercase tracking-wider">Kekuatan Utama Tim</span>
+          <div id="cardTopStrength" class="text-base font-extrabold text-emerald-900 mt-2 truncate">—</div>
+          <span id="cardTopStrengthScore" class="text-xs font-semibold text-emerald-700 mt-1 block">Skor: -</span>
+        </div>
+        <div class="bg-white p-5 rounded-2xl border border-amber-200 bg-amber-50/30 shadow-sm">
+          <span class="text-xs font-bold text-amber-600 uppercase tracking-wider">Prioritas Pengembangan</span>
+          <div id="cardTopWeakness" class="text-base font-extrabold text-amber-900 mt-2 truncate">—</div>
+          <span id="cardTopWeaknessScore" class="text-xs font-semibold text-amber-700 mt-1 block">Skor: -</span>
+        </div>
+      </div>
+
+      <!-- CHARTS & PRE VS POST SECTION -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+        <!-- PRE VS POST COMPARISON TABLE & CHART -->
+        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-4">
+              <div>
+                <h3 class="text-base font-bold text-slate-900">🔄 Pre vs Post Program Shift</h3>
+                <p class="text-xs text-slate-500">Perbandingan skor sebelum & sesudah intervensi Mindshift</p>
+              </div>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-xs">
+                <thead>
+                  <tr class="border-b border-slate-200 text-slate-400 font-bold uppercase">
+                    <th class="py-2">Dimensi</th>
+                    <th class="py-2 text-center">Pre-Test</th>
+                    <th class="py-2 text-center">Post-Test</th>
+                    <th class="py-2 text-right">Delta (Shift)</th>
+                  </tr>
+                </thead>
+                <tbody id="prePostTableBody" class="divide-y divide-slate-100 font-medium text-slate-700">
+                  <!-- Dynamic rows -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div class="mt-6 pt-4 border-t border-slate-100 text-xs text-slate-400">
+            * Delta dihitung otomatis dari rata-rata Pre-Test vs Post-Test pada cohort yang dipilih.
+          </div>
+        </div>
+
+        <!-- LEVEL DISTRIBUTION CHART -->
+        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+          <h3 class="text-base font-bold text-slate-900 mb-1">🏆 Distribusi Mindset Maturity</h3>
+          <p class="text-xs text-slate-500 mb-4">Proporsi peserta berdasarkan 4 Level Maturity</p>
+          <div class="h-64 flex justify-center">
+            <canvas id="levelChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- DIMENSION BREAKDOWN BAR CHART -->
+      <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+        <h3 class="text-base font-bold text-slate-900 mb-1">📈 Skor Rata-rata per Dimensi</h3>
+        <p class="text-xs text-slate-500 mb-4">Evaluasi mendalam 4 Pilar Data-Driven Mindset</p>
+        <div class="h-64">
+          <canvas id="dimensionBarChart"></canvas>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- TAB 2: INDIVIDUAL DATA VIEW -->
+    <div id="tabIndividual" class="hidden space-y-4">
+      <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row justify-between items-center gap-4">
+        <div class="w-full sm:w-72">
+          <input type="text" id="searchName" oninput="renderIndividualTable()" placeholder="Cari nama atau email..." class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm font-medium text-slate-700 outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+        <div class="text-xs text-slate-400">
+          Menampilkan <span id="showingCount" class="font-bold text-slate-700">0</span> peserta
+        </div>
+      </div>
+
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs">
+            <thead class="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider">
+              <tr>
+                <th class="p-3.5">Nama & Email</th>
+                <th class="p-3.5">Perusahaan</th>
+                <th class="p-3.5">Role / Job Level</th>
+                <th class="p-3.5">Tahap</th>
+                <th class="p-3.5 text-center">Skor Overall</th>
+                <th class="p-3.5">Level Maturity</th>
+                <th class="p-3.5 text-right">Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="individualTableBody" class="divide-y divide-slate-100 font-medium text-slate-700">
+              <!-- Dynamic rows -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- INDIVIDUAL DETAIL MODAL -->
+  <div id="detailModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-2xl w-full p-6 shadow-2xl border border-slate-200 overflow-y-auto max-h-[90vh]">
+      <div class="flex justify-between items-start border-b border-slate-100 pb-4 mb-4">
+        <div>
+          <span id="mStage" class="px-2 py-0.5 bg-blue-50 text-blue-600 rounded-md font-bold text-[10px] uppercase tracking-wider mb-1 inline-block">Pre-Test</span>
+          <h2 id="mNama" class="text-xl font-bold text-slate-900">Nama Peserta</h2>
+          <p id="mMeta" class="text-xs text-slate-500">Email • Perusahaan • Role</p>
+        </div>
+        <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600 text-2xl font-bold">&times;</button>
+      </div>
+
+      <div class="grid grid-cols-2 gap-4 mb-6">
+        <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100 text-center">
+          <span class="text-xs text-slate-400 font-bold uppercase">Overall Score</span>
+          <div id="mScore" class="text-3xl font-black text-blue-600 mt-1">0.00</div>
+        </div>
+        <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100 text-center">
+          <span class="text-xs text-slate-400 font-bold uppercase">Maturity Level</span>
+          <div id="mLevel" class="text-sm font-extrabold text-slate-800 mt-2">—</div>
+        </div>
+      </div>
+
+      <div class="space-y-3 mb-6">
+        <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Breakdown Skor 4 Dimensi</h4>
+        <div id="mDimList" class="space-y-2">
+          <!-- Dynamic Dim List -->
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-4 text-xs">
+        <div class="bg-emerald-50/60 p-3.5 rounded-xl border border-emerald-100">
+          <span class="font-bold text-emerald-700 block mb-1">Kekuatan Utama</span>
+          <span id="mStrength" class="font-extrabold text-emerald-900 text-sm">—</span>
+        </div>
+        <div class="bg-amber-50/60 p-3.5 rounded-xl border border-amber-100">
+          <span class="font-bold text-amber-700 block mb-1">Prioritas Pengembangan</span>
+          <span id="mWeakness" class="font-extrabold text-amber-900 text-sm">—</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let allData = [];
+    let filteredData = [];
+    let levelChartInstance = null;
+    let barChartInstance = null;
+
+    // Inject JSON Data passed from GAS Server Template if available
+    const SERVER_DATA = <?!= JSON.stringify(rawData || []) ?>;
+
+    window.onload = function() {
+      if (SERVER_DATA && SERVER_DATA.length > 0) {
+        processRawData(SERVER_DATA);
+      } else {
+        fetchData();
+      }
+    };
+
+    function fetchData() {
+      if (typeof google !== 'undefined' && google.script && google.script.run) {
+        google.script.run.withSuccessHandler(processRawData).getDashboardData();
+      } else {
+        // Fallback demo data for local preview
+        console.log("GAS environment not detected, using client mode.");
+      }
+    }
+
+    function processRawData(rows) {
+      // Index headers
+      if (!rows || rows.length < 2) {
+        allData = [];
+      } else {
+        const headers = rows[0];
+        allData = rows.slice(1).map(r => ({
+          timestamp: r[0],
+          nama: r[1] || '-',
+          email: r[2] || '-',
+          company: r[3] || '-',
+          role: r[4] || '-',
+          stage: r[5] || 'Pre-Test',
+          overallScore: parseFloat(r[6]) || 0,
+          overallLevel: r[7] || '-',
+          evidenceOrientation: parseFloat(r[8]) || 0,
+          dataSeekingCuriosity: parseFloat(r[9]) || 0,
+          cognitiveFlexibility: parseFloat(r[10]) || 0,
+          reflectionLearning: parseFloat(r[11]) || 0,
+          kekuatanUtama: r[12] || '-',
+          prioritasPengembangan: r[13] || '-'
+        }));
+      }
+      populateFilterDropdowns();
+      applyFilters();
+    }
+
+    function populateFilterDropdowns() {
+      const companies = [...new Set(allData.map(d => d.company).filter(Boolean))];
+      const roles = [...new Set(allData.map(d => d.role).filter(Boolean))];
+
+      const cSelect = document.getElementById("filterCompany");
+      cSelect.innerHTML = '<option value="ALL">Semua Perusahaan</option>' + 
+        companies.map(c => `<option value="${c}">${c}</option>`).join("");
+
+      const rSelect = document.getElementById("filterRole");
+      rSelect.innerHTML = '<option value="ALL">Semua Job Level</option>' + 
+        roles.map(r => `<option value="${r}">${r}</option>`).join("");
+    }
+
+    function applyFilters() {
+      const companyVal = document.getElementById("filterCompany").value;
+      const roleVal = document.getElementById("filterRole").value;
+      const stageVal = document.getElementById("filterStage").value;
+
+      filteredData = allData.filter(d => {
+        const matchC = (companyVal === 'ALL' || d.company === companyVal);
+        const matchR = (roleVal === 'ALL' || d.role === roleVal);
+        const matchS = (stageVal === 'ALL' || d.stage === stageVal);
+        return matchC && matchR && matchS;
+      });
+
+      renderCohortAnalytics();
+      renderIndividualTable();
+    }
+
+    function renderCohortAnalytics() {
+      document.getElementById("cardTotal").textContent = filteredData.length;
+      document.getElementById("countIndividual").textContent = filteredData.length;
+
+      if (filteredData.length === 0) {
+        document.getElementById("cardAvgScore").innerHTML = '0.00 <span class="text-sm font-normal text-slate-400">/ 5.00</span>';
+        document.getElementById("cardAvgLevel").textContent = 'Tidak Ada Data';
+        document.getElementById("cardTopStrength").textContent = '-';
+        document.getElementById("cardTopWeakness").textContent = '-';
+        renderPrePostTable([], []);
+        renderLevelChart([0,0,0,0]);
+        renderBarChart([0,0,0,0]);
+        return;
+      }
+
+      // Average Overall
+      const avgOverall = filteredData.reduce((acc, d) => acc + d.overallScore, 0) / filteredData.length;
+      document.getElementById("cardAvgScore").innerHTML = `${avgOverall.toFixed(2)} <span class="text-sm font-normal text-slate-400">/ 5.00</span>`;
+      
+      let lvlName = "Level 1 — Data Novice";
+      if (avgOverall >= 4.1) lvlName = "Level 4 — Data-Driven Leader";
+      else if (avgOverall >= 3.25) lvlName = "Level 3 — Data-Driven Practitioner";
+      else if (avgOverall >= 2.5) lvlName = "Level 2 — Data Aware";
+      document.getElementById("cardAvgLevel").textContent = lvlName;
+
+      // Dimension Averages
+      const dims = {
+        "Evidence Orientation": filteredData.reduce((acc, d) => acc + d.evidenceOrientation, 0) / filteredData.length,
+        "Data Seeking & Curiosity": filteredData.reduce((acc, d) => acc + d.dataSeekingCuriosity, 0) / filteredData.length,
+        "Cognitive Flexibility": filteredData.reduce((acc, d) => acc + d.cognitiveFlexibility, 0) / filteredData.length,
+        "Reflection & Learning": filteredData.reduce((acc, d) => acc + d.reflectionLearning, 0) / filteredData.length
+      };
+
+      const sortedDims = Object.entries(dims).sort((a,b) => b[1] - a[1]);
+      document.getElementById("cardTopStrength").textContent = sortedDims[0][0];
+      document.getElementById("cardTopStrengthScore").textContent = `Skor Rata-rata: ${sortedDims[0][1].toFixed(2)}`;
+
+      document.getElementById("cardTopWeakness").textContent = sortedDims[sortedDims.length-1][0];
+      document.getElementById("cardTopWeaknessScore").textContent = `Skor Rata-rata: ${sortedDims[sortedDims.length-1][1].toFixed(2)}`;
+
+      // Pre vs Post Calculation
+      const preData = filteredData.filter(d => d.stage === 'Pre-Test');
+      const postData = filteredData.filter(d => d.stage === 'Post-Test');
+      renderPrePostTable(preData, postData);
+
+      // Maturity Distribution
+      let l1 = 0, l2 = 0, l3 = 0, l4 = 0;
+      filteredData.forEach(d => {
+        if (d.overallLevel.includes("Novice")) l1++;
+        else if (d.overallLevel.includes("Aware")) l2++;
+        else if (d.overallLevel.includes("Practitioner")) l3++;
+        else if (d.overallLevel.includes("Leader")) l4++;
+      });
+
+      renderLevelChart([l1, l2, l3, l4]);
+      renderBarChart([dims["Evidence Orientation"], dims["Data Seeking & Curiosity"], dims["Cognitive Flexibility"], dims["Reflection & Learning"]]);
+    }
+
+    function renderPrePostTable(preData, postData) {
+      const calcAvg = (arr, key) => arr.length > 0 ? (arr.reduce((acc, d) => acc + d[key], 0) / arr.length) : 0;
+
+      const keys = [
+        { label: "Overall Score", key: "overallScore" },
+        { label: "Evidence Orientation", key: "evidenceOrientation" },
+        { label: "Data Seeking & Curiosity", key: "dataSeekingCuriosity" },
+        { label: "Cognitive Flexibility", key: "cognitiveFlexibility" },
+        { label: "Reflection & Learning", key: "reflectionLearning" }
+      ];
+
+      const tbody = document.getElementById("prePostTableBody");
+      tbody.innerHTML = keys.map(k => {
+        const preVal = calcAvg(preData, k.key);
+        const postVal = calcAvg(postData, k.key);
+        const delta = postVal - preVal;
+        const deltaClass = delta > 0 ? 'text-emerald-600 bg-emerald-50' : (delta < 0 ? 'text-rose-600 bg-rose-50' : 'text-slate-400');
+        const deltaStr = postData.length > 0 && preData.length > 0 ? (delta >= 0 ? `+${delta.toFixed(2)}` : delta.toFixed(2)) : '-';
+
+        return `
+          <tr class="hover:bg-slate-50">
+            <td class="py-2.5 font-bold text-slate-800">${k.label}</td>
+            <td class="py-2.5 text-center font-mono text-slate-600">${preData.length > 0 ? preVal.toFixed(2) : '-'}</td>
+            <td class="py-2.5 text-center font-mono text-slate-600">${postData.length > 0 ? postVal.toFixed(2) : '-'}</td>
+            <td class="py-2.5 text-right font-mono font-bold">
+              <span class="px-2 py-0.5 rounded-md ${deltaClass}">${deltaStr}</span>
+            </td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    function renderLevelChart(counts) {
+      const ctx = document.getElementById('levelChart').getContext('2d');
+      if (levelChartInstance) levelChartInstance.destroy();
+
+      levelChartInstance = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: ['Level 1: Novice', 'Level 2: Aware', 'Level 3: Practitioner', 'Level 4: Leader'],
+          datasets: [{
+            data: counts,
+            backgroundColor: ['#ef4444', '#f59e0b', '#3b82f6', '#10b981']
+          }]
+        },
+        options: { responsive: true, maintainAspectRatio: false }
+      });
+    }
+
+    function renderBarChart(scores) {
+      const ctx = document.getElementById('dimensionBarChart').getContext('2d');
+      if (barChartInstance) barChartInstance.destroy();
+
+      barChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: ['Evidence Orientation', 'Data Seeking & Curiosity', 'Cognitive Flexibility', 'Reflection & Learning'],
+          datasets: [{
+            label: 'Skor Rata-rata Cohort (Max 5.00)',
+            data: scores.map(s => s.toFixed(2)),
+            backgroundColor: '#3b82f6',
+            borderRadius: 8
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: { y: { min: 0, max: 5 } }
+        }
+      });
+    }
+
+    function renderIndividualTable() {
+      const query = document.getElementById("searchName").value.toLowerCase();
+      const list = filteredData.filter(d => d.nama.toLowerCase().includes(query) || d.email.toLowerCase().includes(query));
+
+      document.getElementById("showingCount").textContent = list.length;
+
+      const tbody = document.getElementById("individualTableBody");
+      if (list.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="p-6 text-center text-slate-400">Tidak ada peserta ditemukan.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = list.map((d, i) => `
+        <tr class="hover:bg-slate-50">
+          <td class="p-3.5">
+            <div class="font-bold text-slate-900">${d.nama}</div>
+            <div class="text-[11px] text-slate-400">${d.email}</div>
+          </td>
+          <td class="p-3.5">${d.company}</td>
+          <td class="p-3.5">${d.role}</td>
+          <td class="p-3.5">
+            <span class="px-2 py-0.5 ${d.stage === 'Post-Test' ? 'bg-indigo-50 text-indigo-700' : 'bg-slate-100 text-slate-600'} text-[10px] font-bold rounded-md uppercase">${d.stage}</span>
+          </td>
+          <td class="p-3.5 text-center font-bold text-blue-600 font-mono">${d.overallScore.toFixed(2)}</td>
+          <td class="p-3.5 font-medium">${d.overallLevel}</td>
+          <td class="p-3.5 text-right">
+            <button onclick="openModal(${allData.indexOf(d)})" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg transition">Detail</button>
+          </td>
+        </tr>
+      `).join("");
+    }
+
+    function openModal(index) {
+      const item = allData[index];
+      if (!item) return;
+
+      document.getElementById("mNama").textContent = item.nama;
+      document.getElementById("mMeta").textContent = `${item.email} • ${item.company} • ${item.role}`;
+      document.getElementById("mStage").textContent = item.stage;
+      document.getElementById("mScore").textContent = item.overallScore.toFixed(2);
+      document.getElementById("mLevel").textContent = item.overallLevel;
+      document.getElementById("mStrength").textContent = item.kekuatanUtama;
+      document.getElementById("mWeakness").textContent = item.prioritasPengembangan;
+
+      const dims = [
+        { label: "Evidence Orientation", score: item.evidenceOrientation },
+        { label: "Data Seeking & Curiosity", score: item.dataSeekingCuriosity },
+        { label: "Cognitive Flexibility", score: item.cognitiveFlexibility },
+        { label: "Reflection & Learning", score: item.reflectionLearning }
+      ];
+
+      document.getElementById("mDimList").innerHTML = dims.map(d => `
+        <div class="flex justify-between items-center text-xs">
+          <span class="font-medium text-slate-600">${d.label}</span>
+          <span class="font-bold text-slate-900 font-mono">${d.score.toFixed(2)}</span>
+        </div>
+        <div class="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+          <div class="bg-blue-600 h-full rounded-full" style="width: ${d.score/5*100}%"></div>
+        </div>
+      `).join("");
+
+      document.getElementById("detailModal").classList.remove("hidden");
+    }
+
+    function closeModal() {
+      document.getElementById("detailModal").classList.add("hidden");
+    }
+
+    function switchTab(tab) {
+      if (tab === 'cohort') {
+        document.getElementById("tabCohort").classList.remove("hidden");
+        document.getElementById("tabIndividual").classList.add("hidden");
+        document.getElementById("tabBtnCohort").classList.add("tab-active");
+        document.getElementById("tabBtnIndividual").classList.remove("tab-active");
+      } else {
+        document.getElementById("tabCohort").classList.add("hidden");
+        document.getElementById("tabIndividual").classList.remove("hidden");
+        document.getElementById("tabBtnIndividual").classList.add("tab-active");
+        document.getElementById("tabBtnCohort").classList.remove("tab-active");
+      }
+    }
+
+    function exportCSV() {
+      if (filteredData.length === 0) {
+        alert("Tidak ada data untuk diekspor.");
+        return;
+      }
+
+      let csv = "Timestamp,Nama,Email,Company,Role,Stage,OverallScore,OverallLevel,EvidenceOrientation,DataSeekingCuriosity,CognitiveFlexibility,ReflectionLearning,KekuatanUtama,PrioritasPengembangan\n";
+      filteredData.forEach(d => {
+        csv += `"${d.timestamp}","${d.nama}","${d.email}","${d.company}","${d.role}","${d.stage}",${d.overallScore},"${d.overallLevel}",${d.evidenceOrientation},${d.dataSeekingCuriosity},${d.cognitiveFlexibility},${d.reflectionLearning},"${d.kekuatanUtama}","${d.prioritasPengembangan}"\n`;
+      });
+
+      const blob = new Blob([csv], { type: "text/csv" });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Mindshift_Cohort_Export_${new Date().toISOString().slice(0,10)}.csv`;
+      a.click();
+    }
+  </script>
+</body>
+</html>

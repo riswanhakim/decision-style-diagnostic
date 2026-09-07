@@ -1,3 +1,27 @@
+function doGet(e) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName("Data Responses");
+  let rawData = [];
+  if (sheet && sheet.getLastRow() > 0) {
+    rawData = sheet.getDataRange().getValues();
+  }
+  
+  const template = HtmlService.createTemplateFromFile("dashboard");
+  template.rawData = rawData;
+  
+  return template.evaluate()
+    .setTitle("Mindshift — Cohort & Individual Dashboard")
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
+    .addMetaTag('viewport', 'width=device-width, initial-scale=1');
+}
+
+function getDashboardData() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName("Data Responses");
+  if (!sheet || sheet.getLastRow() === 0) return [];
+  return sheet.getDataRange().getValues();
+}
+
 function doPost(e) {
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -53,7 +77,7 @@ function doPost(e) {
       data.prioritasPengembangan || "-"
     ]);
     
-    // Update Cohort Analytics Dashboard
+    // Update Cohort Analytics Dashboard Sheet Tab jika ada
     updateCohortDashboard(ss);
     
     return ContentService.createTextOutput(JSON.stringify({ status: "success" }))
