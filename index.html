@@ -182,8 +182,15 @@ body{
  <input type="text" id="inputCompany" required />
  </div>
  <div class="user-field">
- <label for="inputRole">Role / Jabatan *</label>
+ <label for="inputRole">Role / Job Level *</label>
  <input type="text" id="inputRole" required />
+ </div>
+ <div class="user-field" style="grid-column: span 2;">
+ <label for="inputStage">Tahap Asesmen *</label>
+ <select id="inputStage" style="width:100%;padding:12px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.9);color:#182230;font-size:14px;font-weight:600;outline:none;">
+   <option value="Pre-Test">Pre-Test (Awal Program / Baseline)</option>
+   <option value="Post-Test">Post-Test (Akhir Program / Evaluasi)</option>
+ </select>
  </div>
  </div>
  </div>
@@ -486,6 +493,7 @@ function sendDataToDatabase(overall, overallLevel, dimScores){
    email: document.getElementById("inputEmail").value.trim(),
    company: document.getElementById("inputCompany").value.trim(),
    role: document.getElementById("inputRole").value.trim(),
+   stage: document.getElementById("inputStage").value,
    overallScore: overall.toFixed(2),
    overallLevel: `Level ${overallLevel.id} — ${overallLevel.name}`,
    evidenceOrientation: dimScores["Evidence Orientation"].toFixed(2),
